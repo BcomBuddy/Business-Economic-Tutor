@@ -26,7 +26,7 @@ const Sidebar: React.FC = () => {
       <div className="px-4 py-4">
         <div className="p-3 rounded-xl glass">
           <p className="text-sm font-medium gradient-text font-poppins">EconTutor</p>
-          <p className="text-xs text-gray-300">Business Economics AI Tutor</p>
+          <p className="text-xs text-gray-600 dark:text-gray-300">Business Economics AI Tutor</p>
         </div>
       </div>
 
@@ -44,10 +44,10 @@ const Sidebar: React.FC = () => {
                       : 'hover:shadow-neon-lime'
                   }`}
                 >
-                  <span className={`w-8 h-8 rounded-md flex items-center justify-center bg-[rgba(255,255,255,0.06)] border border-white/10`}>
-                    <Icon className="w-4 h-4 text-neon-teal" />
+                  <span className={`w-8 h-8 rounded-md flex items-center justify-center bg-gradient-to-br from-[#4A6FA5] to-[#3d5a8c]`}>
+                    <Icon className="w-4 h-4 text-white" />
                   </span>
-                  <span className="font-medium text-white">{label}</span>
+                  <span className="font-medium text-gray-900 dark:text-white">{label}</span>
                 </button>
               </li>
             );
@@ -57,7 +57,7 @@ const Sidebar: React.FC = () => {
 
       <div className="px-4 pb-4">
         <div className="rounded-lg p-3 glass">
-          <p className="text-xs text-gray-300">Tip: Start in Chat to get personalized guidance.</p>
+          <p className="text-xs text-gray-600 dark:text-gray-300">Tip: Start in Chat to get personalized guidance.</p>
         </div>
       </div>
     </div>

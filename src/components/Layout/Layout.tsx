@@ -14,7 +14,11 @@ const Layout: React.FC = () => {
       isDark ? 'dark bg-midnight' : 'bg-white'
     }`}>
       <div className="h-screen grid grid-cols-[260px_minmax(0,1fr)]">
-        <aside className="h-full border-r border-white/10 bg-[rgba(15,15,31,0.6)] backdrop-blur">
+        <aside className={`h-full border-r transition-colors duration-300 ${
+          isDark 
+            ? 'border-white/10 bg-[rgba(15,15,31,0.6)] backdrop-blur' 
+            : 'border-gray-200 bg-white'
+        }`}>
           <Sidebar />
         </aside>
         <div className="flex flex-col h-full">
