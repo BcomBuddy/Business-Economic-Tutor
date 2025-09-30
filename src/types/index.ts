@@ -75,3 +75,30 @@ export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
 }
+
+export interface SyllabusTopic {
+  id: string;
+  title: string;
+  description: string;
+  learningObjectives: string[];
+  keyTerms: string[];
+  detailedContent?: {
+    definition: string;
+    explanation: string;
+    keyPoints: string[];
+    examples: string[];
+    importance: string;
+  };
+}
+
+export interface SyllabusUnit {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  topics: SyllabusTopic[];
+}
+
+export interface SyllabusData {
+  units: SyllabusUnit[];
+}

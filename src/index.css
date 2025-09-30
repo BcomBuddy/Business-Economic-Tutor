@@ -45,6 +45,31 @@ body {
   color: transparent;
 }
 
+/* Responsive text sizing */
+@media (max-width: 768px) {
+  .sidebar-text-responsive {
+    font-size: 0.75rem;
+    line-height: 1.2;
+  }
+}
+
+/* Smooth transitions for sidebar */
+.sidebar-transition {
+  transition: all 0.3s ease-in-out;
+}
+
+/* Sidebar active state styling */
+.sidebar-active {
+  background: rgba(59, 130, 246, 0.1);
+  border-left: 3px solid #3b82f6;
+}
+
+/* Sidebar hover effects */
+.sidebar-hover:hover {
+  background: rgba(59, 130, 246, 0.05);
+  transform: translateX(2px);
+}
+
 /* Scrollbars */
 *::-webkit-scrollbar { width: 10px; height: 10px; }
 *::-webkit-scrollbar-track { background: var(--bg); }

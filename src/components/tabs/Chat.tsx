@@ -732,14 +732,20 @@ REMEMBER: If the question is NOT about Business Economics, respond with the exac
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [showSearch, isMultiSelect, showAnalytics, isFullscreen, showSettings, isMinimized]);
 
-  const formatMessage = (content: string) => {
-    // Clean up the content by removing asterisks and improving formatting
-    let cleanedContent = content
-      .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markers
-      .replace(/\*(.*?)\*/g, '$1') // Remove italic markers
+  const processHtmlContent = (content: string) => {
+    // Clean up any table syntax that might slip through
+    return content
+      .replace(/\|/g, '') // Remove all pipe characters
+      .replace(/-{3,}/g, '') // Remove table separators
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Convert bold
+      .replace(/\*(.*?)\*/g, '<em>$1</em>') // Convert italic
       .replace(/#{1,6}\s*/g, '') // Remove markdown headers
       .replace(/```[\s\S]*?```/g, '') // Remove code blocks
-      .replace(/`([^`]+)`/g, '$1'); // Remove inline code markers
+      .replace(/`([^`]+)`/g, '<code>$1</code>'); // Convert inline code
+  };
+
+  const formatMessage = (content: string) => {
+    const cleanedContent = processHtmlContent(content);
 
     const lines = cleanedContent.split('\n');
     return lines.map((line, index) => {
@@ -749,9 +755,7 @@ REMEMBER: If the question is NOT about Business Economics, respond with the exac
           <div key={index} className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
             <div className="flex items-start">
               <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" />
-              <div className="text-red-800 dark:text-red-200">
-                {formatMessage(line.replace('❌', ''))}
-              </div>
+              <div className="text-red-800 dark:text-red-200" dangerouslySetInnerHTML={{ __html: processHtmlContent(line.replace('❌', '')) }} />
             </div>
           </div>
         );
@@ -769,11 +773,11 @@ REMEMBER: If the question is NOT about Business Economics, respond with the exac
       }
       
       // Bullet points (clean up • and -)
-      if (line.startsWith('• ') || line.startsWith('- ')) {
+      if (line.startsWith('• ') || line.startsWith('- ') || line.startsWith('* ')) {
         return (
           <li key={index} className="text-gray-700 dark:text-gray-300 ml-6 mb-2 flex items-start">
             <span className="text-[#4A6FA5] mr-3 mt-1 text-sm">▶</span>
-            <span>{line.replace(/^[•-]\s*/, '')}</span>
+            <span dangerouslySetInnerHTML={{ __html: line.replace(/^[•\-\*]\s*/, '') }} />
           </li>
         );
       }
@@ -785,7 +789,7 @@ REMEMBER: If the question is NOT about Business Economics, respond with the exac
             <span className="text-[#4A6FA5] mr-3 mt-1 text-sm font-semibold">
               {line.match(/^\d+/)?.[0]}.
             </span>
-            <span>{line.replace(/^\d+\.\s*/, '')}</span>
+            <span dangerouslySetInnerHTML={{ __html: line.replace(/^\d+\.\s*/, '') }} />
           </div>
         );
       }
@@ -798,9 +802,7 @@ REMEMBER: If the question is NOT about Business Economics, respond with the exac
               <Lightbulb className="w-4 h-4 mr-2" />
               Key Takeaways
             </h4>
-            <div className="text-blue-800 dark:text-blue-300">
-              {formatMessage(line.replace(/key takeaways?/gi, '').trim())}
-            </div>
+            <div className="text-blue-800 dark:text-blue-300" dangerouslySetInnerHTML={{ __html: processHtmlContent(line.replace(/key takeaways?/gi, '').trim()) }} />
           </div>
         );
       }
@@ -813,9 +815,7 @@ REMEMBER: If the question is NOT about Business Economics, respond with the exac
               <Target className="w-4 h-4 mr-2" />
               Practice Question
             </h4>
-            <div className="text-green-800 dark:text-green-300">
-              {formatMessage(line.replace(/practice questions?/gi, '').trim())}
-            </div>
+            <div className="text-green-800 dark:text-green-300" dangerouslySetInnerHTML={{ __html: processHtmlContent(line.replace(/practice questions?/gi, '').trim()) }} />
           </div>
         );
       }
@@ -828,9 +828,7 @@ REMEMBER: If the question is NOT about Business Economics, respond with the exac
               <Award className="w-4 h-4 mr-2" />
               Benefits
             </h4>
-            <div className="text-purple-800 dark:text-purple-300">
-              {formatMessage(line.replace(/benefits?/gi, '').trim())}
-            </div>
+            <div className="text-purple-800 dark:text-purple-300" dangerouslySetInnerHTML={{ __html: processHtmlContent(line.replace(/benefits?/gi, '').trim()) }} />
           </div>
         );
       }
@@ -843,9 +841,7 @@ REMEMBER: If the question is NOT about Business Economics, respond with the exac
               <BookOpen className="w-4 h-4 mr-2" />
               Types
             </h4>
-            <div className="text-orange-800 dark:text-orange-300">
-              {formatMessage(line.replace(/types?/gi, '').trim())}
-            </div>
+            <div className="text-orange-800 dark:text-orange-300" dangerouslySetInnerHTML={{ __html: processHtmlContent(line.replace(/types?/gi, '').trim()) }} />
           </div>
         );
       }
@@ -858,16 +854,27 @@ REMEMBER: If the question is NOT about Business Economics, respond with the exac
               <TrendingUp className="w-4 h-4 mr-2" />
               Process
             </h4>
-            <div className="text-indigo-800 dark:text-indigo-300">
-              {formatMessage(line.replace(/process|steps/gi, '').trim())}
-            </div>
+            <div className="text-indigo-800 dark:text-indigo-300" dangerouslySetInnerHTML={{ __html: processHtmlContent(line.replace(/process|steps/gi, '').trim()) }} />
+          </div>
+        );
+      }
+      
+      // Handle examples
+      if (line.toLowerCase().includes('example:') || line.toLowerCase().includes('for example:')) {
+        return (
+          <div key={index} className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
+            <h4 className="font-semibold text-blue-900 dark:text-blue-200 mb-2 flex items-center">
+              <Lightbulb className="w-4 h-4 mr-2" />
+              Example
+            </h4>
+            <div className="text-blue-800 dark:text-blue-300" dangerouslySetInnerHTML={{ __html: line }} />
           </div>
         );
       }
       
       // Regular paragraphs
       if (line.trim()) {
-        return <p key={index} className="text-gray-700 dark:text-gray-300 mb-3 leading-relaxed">{line}</p>;
+        return <p key={index} className="text-gray-700 dark:text-gray-300 mb-3 leading-relaxed" dangerouslySetInnerHTML={{ __html: line }} />;
       }
       return <div key={index} className="mb-2"></div>;
     });
@@ -880,9 +887,9 @@ REMEMBER: If the question is NOT about Business Economics, respond with the exac
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40" onClick={() => setIsFullscreen(false)} />
       )}
       
-      <div className={`${isFullscreen ? 'fixed inset-0 z-50 h-screen' : 'max-w-7xl mx-auto h-[calc(100vh-180px)]'} flex flex-col bg-white dark:bg-gray-900 ${isFullscreen ? 'shadow-2xl' : ''} transition-all duration-300 ease-in-out`}>
+      <div className={`${isFullscreen ? 'fixed inset-0 z-50 h-screen' : 'h-full'} flex flex-col bg-white dark:bg-gray-900 ${isFullscreen ? 'shadow-2xl' : ''} transition-all duration-300 ease-in-out`}>
       {/* Enhanced Header with Actions */}
-      <div className={`mb-6 flex items-center justify-between p-4 bg-gradient-to-r from-[#4A6FA5]/5 to-[#3d5a8c]/5 dark:from-[#4A6FA5]/10 dark:to-[#3d5a8c]/10 ${isFullscreen ? 'rounded-none border-b border-gray-200 dark:border-gray-700' : 'rounded-xl border border-gray-200 dark:border-gray-700'}`}>
+      <div className={`mb-4 flex items-center justify-between p-3 bg-gradient-to-r from-[#4A6FA5]/5 to-[#3d5a8c]/5 dark:from-[#4A6FA5]/10 dark:to-[#3d5a8c]/10 ${isFullscreen ? 'rounded-none border-b border-gray-200 dark:border-gray-700' : 'rounded-xl border border-gray-200 dark:border-gray-700'}`}>
         <div className="flex items-center space-x-4">
           <div className="w-12 h-12 bg-gradient-to-br from-[#4A6FA5] to-[#3d5a8c] rounded-xl flex items-center justify-center shadow-lg">
             <MessageCircle className="w-6 h-6 text-white" />
@@ -907,55 +914,6 @@ REMEMBER: If the question is NOT about Business Economics, respond with the exac
         </div>
         
         <div className="flex items-center space-x-2">
-          {/* Quick Actions Toggle */}
-          <button
-            onClick={() => setShowQuickActions(!showQuickActions)}
-            className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-            title="Quick Actions"
-          >
-            <Zap className="w-4 h-4" />
-          </button>
-          
-          {/* Analytics Toggle */}
-          <button
-            onClick={() => setShowAnalytics(!showAnalytics)}
-            className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-            title="Analytics (Ctrl+B)"
-          >
-            <BarChart3 className="w-4 h-4" />
-          </button>
-          
-          {/* Search Toggle */}
-          <button
-            onClick={() => setShowSearch(!showSearch)}
-            className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-            title="Search messages (Ctrl+K)"
-          >
-            <Search className="w-4 h-4" />
-          </button>
-          
-          {/* Multi-select Toggle */}
-          <button
-            onClick={() => setIsMultiSelect(!isMultiSelect)}
-            className={`p-2 rounded-lg transition-colors ${
-              isMultiSelect 
-                ? 'bg-[#4A6FA5] text-white' 
-                : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
-            }`}
-            title="Multi-select (Ctrl+A)"
-          >
-            <CheckCircle2 className="w-4 h-4" />
-          </button>
-          
-          {/* Settings */}
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-            title="Settings (Ctrl+S)"
-          >
-            <Settings className="w-4 h-4" />
-          </button>
-          
           {/* Fullscreen Toggle */}
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
@@ -963,24 +921,6 @@ REMEMBER: If the question is NOT about Business Economics, respond with the exac
             title="Fullscreen (Ctrl+F)"
           >
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-          </button>
-          
-          {/* Export */}
-          <button
-            onClick={exportConversation}
-            className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-            title="Export conversation (Ctrl+E)"
-          >
-            <Download className="w-4 h-4" />
-          </button>
-          
-          {/* Import */}
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-            title="Import conversation (Ctrl+I)"
-          >
-            <Upload className="w-4 h-4" />
           </button>
           
           {/* Clear */}
@@ -991,170 +931,20 @@ REMEMBER: If the question is NOT about Business Economics, respond with the exac
           >
             <Trash2 className="w-4 h-4 text-red-600" />
           </button>
-          
-          {/* Retry */}
-          {retryCount > 0 && (
-            <button
-              onClick={retryLastMessage}
-              className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/20 hover:bg-orange-200 dark:hover:bg-orange-900/30 transition-colors"
-              title="Retry last message (Ctrl+R)"
-            >
-              <RefreshCw className="w-4 h-4 text-orange-600" />
-            </button>
-          )}
         </div>
       </div>
 
-      {/* Quick Actions Panel */}
-      {showQuickActions && (
-        <div className="mb-4 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[
-              { icon: Search, label: 'Search', action: () => setShowSearch(true), shortcut: 'Ctrl+K' },
-              { icon: BarChart3, label: 'Analytics', action: () => setShowAnalytics(true), shortcut: 'Ctrl+B' },
-              { icon: Download, label: 'Export', action: exportConversation, shortcut: 'Ctrl+E' },
-              { icon: Settings, label: 'Settings', action: () => setShowSettings(true), shortcut: 'Ctrl+S' },
-              { icon: Bookmark, label: 'Bookmarks', action: () => {}, shortcut: 'Ctrl+B' },
-              { icon: Share2, label: 'Share', action: () => {}, shortcut: 'Ctrl+Shift+S' },
-              { icon: RotateCcw, label: 'Retry', action: retryLastMessage, shortcut: 'Ctrl+R' },
-              { icon: Trash2, label: 'Clear', action: clearConversation, shortcut: 'Ctrl+L' }
-            ].map((item, index) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={index}
-                  onClick={item.action}
-                  className="flex items-center space-x-2 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <Icon className="w-4 h-4" />
-                  <span className="text-sm font-medium">{item.label}</span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">{item.shortcut}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Analytics Panel */}
-      {showAnalytics && (
-        <div className="mb-4 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-            <BarChart3 className="w-5 h-5 mr-2 text-[#4A6FA5]" />
-            Conversation Analytics
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{conversationStats.totalMessages}</div>
-              <div className="text-sm text-blue-700 dark:text-blue-300">Total Messages</div>
-            </div>
-            <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400">{conversationStats.userMessages}</div>
-              <div className="text-sm text-green-700 dark:text-green-300">Your Messages</div>
-            </div>
-            <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{conversationStats.assistantMessages}</div>
-              <div className="text-sm text-purple-700 dark:text-purple-300">AI Responses</div>
-            </div>
-            <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{conversationStats.totalWords}</div>
-              <div className="text-sm text-orange-700 dark:text-orange-300">Total Words</div>
-            </div>
-          </div>
-          {conversationStats.topicsDiscussed.size > 0 && (
-            <div className="mt-4">
-              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Topics Discussed:</h4>
-              <div className="flex flex-wrap gap-2">
-                {Array.from(conversationStats.topicsDiscussed).map((topic, index) => (
-                  <span key={index} className="px-2 py-1 bg-[#4A6FA5]/10 text-[#4A6FA5] rounded-full text-xs font-medium">
-                    {topic}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Multi-select Actions */}
-      {isMultiSelect && selectedMessages.size > 0 && (
-        <div className="mb-4 p-3 bg-[#4A6FA5]/10 dark:bg-[#4A6FA5]/20 rounded-lg border border-[#4A6FA5]/20">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <span className="text-sm font-medium text-[#4A6FA5] dark:text-[#4A6FA5]">
-                {selectedMessages.size} message{selectedMessages.size !== 1 ? 's' : ''} selected
-              </span>
-              <button
-                onClick={selectAllMessages}
-                className="text-xs text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-              >
-                Select All
-              </button>
-            </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={exportSelectedMessages}
-                className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
-              >
-                <Download className="w-4 h-4 mr-1" />
-                Export
-              </button>
-              <button
-                onClick={deleteSelectedMessages}
-                className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
-              >
-                <Trash2 className="w-4 h-4 mr-1" />
-                Delete
-              </button>
-              <button
-                onClick={clearSelection}
-                className="px-3 py-1 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
-              >
-                <X className="w-4 h-4 mr-1" />
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Enhanced Search Bar */}
-      {showSearch && (
-        <div className="mb-4 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search messages..."
-              className="w-full pl-10 pr-12 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#4A6FA5] focus:border-transparent"
-            />
-            <button
-              onClick={() => setShowSearch(false)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-            >
-              <X className="w-4 h-4 text-gray-400" />
-            </button>
-          </div>
-          {searchQuery && (
-            <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-              Found {filteredMessages.length} message{filteredMessages.length !== 1 ? 's' : ''}
-            </div>
-          )}
-        </div>
-      )}
 
       <div className={`flex-1 glass ${isFullscreen ? 'rounded-none' : 'rounded-xl'} border border-white/10 flex flex-col overflow-hidden`}>
         {/* Enhanced Chat Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6" ref={chatContainerRef}>
+        <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={chatContainerRef}>
           {filteredMessages.length === 0 && chatMessages.length === 0 && (
-            <div className="text-center py-12">
-              <div className="w-20 h-20 bg-gradient-to-br from-[#4A6FA5] to-[#3d5a8c] rounded-2xl flex items-center justify-center mx-auto mb-6 animate-pulse shadow-lg">
-                <Bot className="w-10 h-10 text-white" />
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-gradient-to-br from-[#4A6FA5] to-[#3d5a8c] rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse shadow-lg">
+                <Bot className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Welcome to EconTutor!</h3>
-              <p className="text-gray-600 dark:text-gray-300 max-w-lg mx-auto mb-8 text-lg">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Welcome to EconTutor!</h3>
+              <p className="text-gray-600 dark:text-gray-300 max-w-lg mx-auto mb-6 text-base">
                 I'm your AI tutor for Business Economics. Ask me anything and I'll provide structured explanations with examples and practice questions.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
@@ -1183,19 +973,13 @@ REMEMBER: If the question is NOT about Business Economics, respond with the exac
                   );
                 })}
               </div>
-              <div className="mt-8 p-4 bg-gradient-to-r from-[#4A6FA5]/5 to-[#3d5a8c]/5 dark:from-[#4A6FA5]/10 dark:to-[#3d5a8c]/10 rounded-xl border border-[#4A6FA5]/20">
+              <div className="mt-6 p-3 bg-gradient-to-r from-[#4A6FA5]/5 to-[#3d5a8c]/5 dark:from-[#4A6FA5]/10 dark:to-[#3d5a8c]/10 rounded-xl border border-[#4A6FA5]/20">
                 <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
                   💡 <strong>Pro tip:</strong> Use keyboard shortcuts for faster navigation
                 </p>
                 <div className="flex flex-wrap justify-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-                  <span>Ctrl+K: Search</span>
-                  <span>Ctrl+E: Export</span>
-                  <span>Ctrl+I: Import</span>
-                  <span>Ctrl+L: Clear</span>
-                  <span>Ctrl+R: Retry</span>
-                  <span>Ctrl+A: Multi-select</span>
-                  <span>Ctrl+B: Analytics</span>
                   <span className="font-semibold text-[#4A6FA5]">Ctrl+F: Fullscreen</span>
+                  <span>Ctrl+L: Clear</span>
                   <span>Esc: Exit Fullscreen</span>
                 </div>
               </div>
@@ -1363,7 +1147,7 @@ REMEMBER: If the question is NOT about Business Economics, respond with the exac
         </div>
 
         {/* Input Area */}
-        <div className={`border-t border-white/10 p-4 sticky bottom-0 bg-[rgba(255,255,255,0.95)] dark:bg-[rgba(24,26,36,0.95)] backdrop-blur ${isFullscreen ? 'rounded-none' : 'rounded-b-xl'}`}>
+        <div className={`border-t border-white/10 p-3 sticky bottom-0 bg-[rgba(255,255,255,0.95)] dark:bg-[rgba(24,26,36,0.95)] backdrop-blur ${isFullscreen ? 'rounded-none' : 'rounded-b-xl'}`}>
           <div className="flex items-end space-x-3">
             <div className="flex-1 relative">
               <textarea
@@ -1394,10 +1178,8 @@ REMEMBER: If the question is NOT about Business Economics, respond with the exac
               The tutor may sometimes be unavailable or make mistakes. If that happens, please try again after some time.
             </div>
             <div className="flex items-center space-x-4 text-gray-600 dark:text-gray-300">
-              <span>Ctrl+K: Search</span>
-              <span>Ctrl+E: Export</span>
-              <span>Ctrl+R: Retry</span>
-              <span>Ctrl+F: Fullscreen</span>
+              <span className="font-semibold text-[#4A6FA5]">Ctrl+F: Fullscreen</span>
+              <span>Ctrl+L: Clear</span>
               <span>Esc: Exit Fullscreen</span>
             </div>
           </div>

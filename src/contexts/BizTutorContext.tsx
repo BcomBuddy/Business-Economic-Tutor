@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useReducer } from 'react';
 import { seedData } from '../data/seedData';
+import { syllabusData } from '../data/syllabusData';
 import type { 
   Lesson, 
   Question, 
@@ -7,7 +8,10 @@ import type {
   Flashcard, 
   AttemptLog, 
   ChatMessage, 
-  ProgressByTopic 
+  ProgressByTopic,
+  SyllabusData,
+  SyllabusUnit,
+  SyllabusTopic
 } from '../types/index';
 
 interface EconTutorState {
@@ -19,6 +23,11 @@ interface EconTutorState {
   chatMessages: ChatMessage[];
   progress: Record<string, ProgressByTopic>;
   currentTab: string;
+  syllabusData: SyllabusData;
+  expandedUnits: Set<string>;
+  currentTopic: string | null;
+  currentUnit: string | null;
+  syllabusExpanded: boolean;
 }
 
 interface EconTutorContextType extends EconTutorState {
@@ -28,6 +37,10 @@ interface EconTutorContextType extends EconTutorState {
   addAttemptLog: (log: AttemptLog) => void;
   updateFlashcard: (cardId: string, updates: Partial<Flashcard>) => void;
   updateProgress: (topic: string, correct: boolean, timeSec: number) => void;
+  toggleUnitExpansion: (unitId: string) => void;
+  setCurrentTopic: (topicId: string | null) => void;
+  setCurrentUnit: (unitId: string | null) => void;
+  toggleSyllabusExpansion: () => void;
 }
 
 type EconTutorAction = 
@@ -36,6 +49,10 @@ type EconTutorAction =
   | { type: 'ADD_ATTEMPT_LOG'; payload: AttemptLog }
   | { type: 'UPDATE_FLASHCARD'; payload: { id: string; updates: Partial<Flashcard> } }
   | { type: 'UPDATE_PROGRESS'; payload: { topic: string; correct: boolean; timeSec: number } }
+  | { type: 'TOGGLE_UNIT_EXPANSION'; payload: string }
+  | { type: 'SET_CURRENT_TOPIC'; payload: string | null }
+  | { type: 'SET_CURRENT_UNIT'; payload: string | null }
+  | { type: 'TOGGLE_SYLLABUS_EXPANSION' }
   | { type: 'LOAD_STATE'; payload: Partial<EconTutorState> };
 
 const initialState: EconTutorState = {
@@ -46,7 +63,12 @@ const initialState: EconTutorState = {
   attemptLogs: [],
   chatMessages: [],
   progress: {},
-  currentTab: 'Chat'
+  currentTab: 'Chat',
+  syllabusData: syllabusData,
+  expandedUnits: new Set(),
+  currentTopic: null,
+  currentUnit: null,
+  syllabusExpanded: false
 };
 
 function econTutorReducer(state: EconTutorState, action: EconTutorAction): EconTutorState {
@@ -78,8 +100,29 @@ function econTutorReducer(state: EconTutorState, action: EconTutorAction): EconT
           }
         }
       };
+    case 'TOGGLE_UNIT_EXPANSION':
+      const newExpandedUnits = new Set(state.expandedUnits);
+      if (newExpandedUnits.has(action.payload)) {
+        newExpandedUnits.delete(action.payload);
+      } else {
+        newExpandedUnits.add(action.payload);
+      }
+      return { ...state, expandedUnits: newExpandedUnits };
+    case 'SET_CURRENT_TOPIC':
+      return { ...state, currentTopic: action.payload };
+    case 'SET_CURRENT_UNIT':
+      return { ...state, currentUnit: action.payload };
+    case 'TOGGLE_SYLLABUS_EXPANSION':
+      return { ...state, syllabusExpanded: !state.syllabusExpanded };
     case 'LOAD_STATE':
-      return { ...state, ...action.payload };
+      return { 
+        ...state, 
+        ...action.payload,
+        // Ensure expandedUnits is always a Set
+        expandedUnits: action.payload.expandedUnits instanceof Set 
+          ? action.payload.expandedUnits 
+          : new Set(action.payload.expandedUnits || [])
+      };
     default:
       return state;
   }
@@ -104,6 +147,10 @@ export const EconTutorProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const saved = localStorage.getItem('econtutor-state');
       if (saved) {
         const parsedState = JSON.parse(saved);
+        // Convert expandedUnits array back to Set
+        if (parsedState.expandedUnits && Array.isArray(parsedState.expandedUnits)) {
+          parsedState.expandedUnits = new Set(parsedState.expandedUnits);
+        }
         dispatch({ type: 'LOAD_STATE', payload: parsedState });
       }
     } catch (error) {
@@ -114,7 +161,12 @@ export const EconTutorProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Save to localStorage on state changes
   useEffect(() => {
     try {
-      localStorage.setItem('econtutor-state', JSON.stringify(state));
+      // Convert Set to Array for serialization
+      const stateToSave = {
+        ...state,
+        expandedUnits: Array.from(state.expandedUnits)
+      };
+      localStorage.setItem('econtutor-state', JSON.stringify(stateToSave));
     } catch (error) {
       console.error('Failed to save state:', error);
     }
@@ -140,6 +192,22 @@ export const EconTutorProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     dispatch({ type: 'UPDATE_PROGRESS', payload: { topic, correct, timeSec } });
   };
 
+  const toggleUnitExpansion = (unitId: string) => {
+    dispatch({ type: 'TOGGLE_UNIT_EXPANSION', payload: unitId });
+  };
+
+  const setCurrentTopic = (topicId: string | null) => {
+    dispatch({ type: 'SET_CURRENT_TOPIC', payload: topicId });
+  };
+
+  const setCurrentUnit = (unitId: string | null) => {
+    dispatch({ type: 'SET_CURRENT_UNIT', payload: unitId });
+  };
+
+  const toggleSyllabusExpansion = () => {
+    dispatch({ type: 'TOGGLE_SYLLABUS_EXPANSION' });
+  };
+
   const contextValue: EconTutorContextType = {
     ...state,
     dispatch,
@@ -147,7 +215,11 @@ export const EconTutorProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     addChatMessage,
     addAttemptLog,
     updateFlashcard,
-    updateProgress
+    updateProgress,
+    toggleUnitExpansion,
+    setCurrentTopic,
+    setCurrentUnit,
+    toggleSyllabusExpansion
   };
 
   return (
